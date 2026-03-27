@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { api, saveAuth } from "@/lib/api";
+import { ensureTurnstileLoaded } from "@/lib/turnstile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,37 +13,26 @@ export default function LoginPage() {
   const [show,    setShow]    = useState(false);
   const [loading, setLoading] = useState(false);
   const [cfToken, setCfToken] = useState("");
-  const [tsReady, setTsReady] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
   const widgetId  = useRef<string>("");
 
   useEffect(() => {
     const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
-    let retries = 0;
-    const tryRender = () => {
-      if (widgetId.current) return;
-      if (!widgetRef.current) { if (retries++ < 20) setTimeout(tryRender, 200); return; }
-      if (!(window as any).turnstile) { if (retries++ < 20) setTimeout(tryRender, 300); return; }
-      try {
+    let disposed = false;
+    ensureTurnstileLoaded()
+      .then(() => {
+        if (disposed || widgetId.current || !widgetRef.current || !(window as any).turnstile) return;
         widgetId.current = (window as any).turnstile.render(widgetRef.current, {
           sitekey: SITE_KEY, theme: "dark", size: "normal",
           callback: (t: string) => setCfToken(t),
           "expired-callback": () => setCfToken(""),
         });
-      } catch (_) { if (retries++ < 5) setTimeout(tryRender, 500); }
-    };
-    const id = "cf-ts-script";
-    if (!document.getElementById(id)) {
-      (window as any).onTsLogin = () => setTimeout(tryRender, 100);
-      const s = document.createElement("script");
-      s.id = id;
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTsLogin&render=explicit";
-      s.async = true;
-      document.head.appendChild(s);
-    } else {
-      setTimeout(tryRender, 100);
-    }
+      })
+      .catch((err: Error) => {
+        toast.error(`Turnstile unavailable: ${err.message}`);
+      });
     return () => {
+      disposed = true;
       try { if ((window as any).turnstile && widgetId.current) { (window as any).turnstile.remove(widgetId.current); widgetId.current = ""; } } catch (_) {}
     };
   }, []);

@@ -8,14 +8,19 @@ function token() {
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const tk = token();
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(tk ? { Authorization: `Bearer ${tk}` } : {}),
-      ...(init.headers || {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(tk ? { Authorization: `Bearer ${tk}` } : {}),
+        ...(init.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach API (${BASE}). Check NEXT_PUBLIC_API_URL or backend /api route.`);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Request failed" }));
     throw new Error(err.detail || `HTTP ${res.status}`);

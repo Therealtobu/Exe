@@ -8,6 +8,7 @@ import {
   Zap, ChevronDown, ChevronUp, Terminal, UserPlus, Star, AlertTriangle
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { ensureTurnstileLoaded } from "@/lib/turnstile";
 
 // ── Liquid Glass Bottom Nav ──────────────────────────────────────────────────
 const LANDING_TABS = [
@@ -615,33 +616,23 @@ export default function LandingPage() {
   useEffect(() => {
     if (captchaPassed) return;
     const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
-    let retries = 0;
-    const tryRender = () => {
-      if (widgetId.current) return;
-      if (!widgetRef.current) { if (retries++ < 20) setTimeout(tryRender, 200); return; }
-      if (!(window as any).turnstile) { if (retries++ < 20) setTimeout(tryRender, 300); return; }
-      try {
+    let disposed = false;
+    ensureTurnstileLoaded()
+      .then(() => {
+        if (disposed || widgetId.current || !widgetRef.current || !(window as any).turnstile) return;
         widgetId.current = (window as any).turnstile.render(widgetRef.current, {
-          sitekey:  SITE_KEY,
-          theme:    "dark",
-          size:     "normal",
+          sitekey: SITE_KEY,
+          theme: "dark",
+          size: "normal",
           callback: (token: string) => setCfToken(token),
           "expired-callback": () => setCfToken(""),
         });
-      } catch (_) { if (retries++ < 5) setTimeout(tryRender, 500); }
-    };
-    const id = "cf-ts-landing";
-    if (!document.getElementById(id)) {
-      (window as any).onTsLandingLoad = () => setTimeout(tryRender, 100);
-      const s = document.createElement("script");
-      s.id  = id;
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTsLandingLoad&render=explicit";
-      s.async = true;
-      document.head.appendChild(s);
-    } else {
-      setTimeout(tryRender, 100);
-    }
+      })
+      .catch((err: Error) => {
+        console.error("Turnstile load failed", err);
+      });
     return () => {
+      disposed = true;
       try { if ((window as any).turnstile && widgetId.current) { (window as any).turnstile.remove(widgetId.current); widgetId.current = ""; } } catch (_) {}
     };
   }, [captchaPassed]);
