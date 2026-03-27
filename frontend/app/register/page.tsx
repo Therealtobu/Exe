@@ -19,32 +19,15 @@ export default function RegisterPage() {
   useEffect(() => {
     const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
     let disposed = false;
-    const tryRender = async () => {
-      await ensureTurnstileLoaded();
-      let attempts = 0;
-      while (!disposed && !widgetId.current && attempts < 20) {
-        attempts += 1;
-        try {
-          const container = widgetRef.current;
-          if (!container || !(window as any).turnstile) {
-            await new Promise(r => setTimeout(r, 250));
-            continue;
-          }
-          widgetId.current = (window as any).turnstile.render(container, {
-            sitekey: SITE_KEY, theme: "dark", size: "normal",
-            callback: (t: string) => setCfToken(t),
-            "expired-callback": () => setCfToken(""),
-          });
-        } catch {
-          if (widgetRef.current) widgetRef.current.innerHTML = "";
-          await new Promise(r => setTimeout(r, 300));
-        }
-      }
-      if (!widgetId.current && !disposed) {
-        throw new Error("Cannot render Turnstile widget");
-      }
-    };
-    tryRender()
+    ensureTurnstileLoaded()
+      .then(() => {
+        if (disposed || widgetId.current || !widgetRef.current || !(window as any).turnstile) return;
+        widgetId.current = (window as any).turnstile.render(widgetRef.current, {
+          sitekey: SITE_KEY, theme: "dark", size: "normal",
+          callback: (t: string) => setCfToken(t),
+          "expired-callback": () => setCfToken(""),
+        });
+      })
       .catch((err: Error) => {
         toast.error(`Turnstile unavailable: ${err.message}`);
       });
