@@ -1,4 +1,5 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const BASE = process.env.NEXT_PUBLIC_API_URL
+  || (typeof window !== "undefined" ? `${window.location.origin}/api` : "http://localhost:8000/api");
 
 function token() {
   if (typeof window === "undefined") return null;

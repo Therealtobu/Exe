@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Home as HomeIcon, BookOpen, Tag, LogIn as LoginIcon, ArrowRight,
   Shield, Lock, BarChart2, Key, Users, Check,
-  Zap, ChevronDown, ChevronUp, Terminal, UserPlus, Star
+  Zap, ChevronDown, ChevronUp, Terminal, UserPlus, Star, AlertTriangle
 } from "lucide-react";
 import { api } from "@/lib/api";
 
