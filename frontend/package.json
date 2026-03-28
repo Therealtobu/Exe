@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "check:lucide-imports": "node scripts/check-lucide-imports.mjs",
+    "build": "npm run check:lucide-imports && next build",
     "start": "next start"
   },
   "dependencies": {
