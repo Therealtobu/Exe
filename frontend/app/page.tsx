@@ -5,9 +5,10 @@ import Link from "next/link";
 import {
   Home as HomeIcon, BookOpen, Tag, LogIn as LoginIcon, ArrowRight,
   Shield, Lock, BarChart2, Key, Users, Check,
-  Zap, ChevronDown, ChevronUp, Terminal, UserPlus, Star
+  Zap, ChevronDown, ChevronUp, Terminal, UserPlus, Star, AlertTriangle
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { ensureTurnstileLoaded } from "@/lib/turnstile";
 
 // ── Liquid Glass Bottom Nav ──────────────────────────────────────────────────
 const LANDING_TABS = [
@@ -602,6 +603,7 @@ export default function LandingPage() {
   const [tab,           setTab]           = useState<TabId>("home");
   const [captchaPassed, setCaptchaPassed] = useState(false);
   const [cfToken,       setCfToken]       = useState("");
+  const [tsError,       setTsError]       = useState("");
   const widgetRef = useRef<HTMLDivElement>(null);
   const widgetId  = useRef<string>("");
 
@@ -615,33 +617,41 @@ export default function LandingPage() {
   useEffect(() => {
     if (captchaPassed) return;
     const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
-    let retries = 0;
-    const tryRender = () => {
-      if (widgetId.current) return;
-      if (!widgetRef.current) { if (retries++ < 20) setTimeout(tryRender, 200); return; }
-      if (!(window as any).turnstile) { if (retries++ < 20) setTimeout(tryRender, 300); return; }
-      try {
-        widgetId.current = (window as any).turnstile.render(widgetRef.current, {
-          sitekey:  SITE_KEY,
-          theme:    "dark",
-          size:     "normal",
-          callback: (token: string) => setCfToken(token),
-          "expired-callback": () => setCfToken(""),
-        });
-      } catch (_) { if (retries++ < 5) setTimeout(tryRender, 500); }
+    let disposed = false;
+    setTsError("");
+    const tryRender = async () => {
+      await ensureTurnstileLoaded();
+      let attempts = 0;
+      while (!disposed && !widgetId.current && attempts < 20) {
+        attempts += 1;
+        try {
+          const container = widgetRef.current;
+          if (!container || !(window as any).turnstile) {
+            await new Promise(r => setTimeout(r, 250));
+            continue;
+          }
+          widgetId.current = (window as any).turnstile.render(container, {
+            sitekey: SITE_KEY,
+            theme: "dark",
+            size: "normal",
+            callback: (token: string) => setCfToken(token),
+            "expired-callback": () => setCfToken(""),
+          });
+        } catch {
+          if (widgetRef.current) widgetRef.current.innerHTML = "";
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+      if (!widgetId.current && !disposed) {
+        throw new Error("Cannot render Turnstile widget");
+      }
     };
-    const id = "cf-ts-landing";
-    if (!document.getElementById(id)) {
-      (window as any).onTsLandingLoad = () => setTimeout(tryRender, 100);
-      const s = document.createElement("script");
-      s.id  = id;
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTsLandingLoad&render=explicit";
-      s.async = true;
-      document.head.appendChild(s);
-    } else {
-      setTimeout(tryRender, 100);
-    }
+    tryRender()
+      .catch((err: Error) => {
+        setTsError(err.message || "Turnstile load failed");
+      });
     return () => {
+      disposed = true;
       try { if ((window as any).turnstile && widgetId.current) { (window as any).turnstile.remove(widgetId.current); widgetId.current = ""; } } catch (_) {}
     };
   }, [captchaPassed]);
@@ -694,6 +704,11 @@ export default function LandingPage() {
             <div style={{ display:"flex", justifyContent:"center", marginBottom:16 }}>
               <div ref={widgetRef} />
             </div>
+            {tsError && (
+              <p style={{ color: "#f87171", fontSize: 12, marginBottom: 12 }}>
+                Turnstile error: {tsError}
+              </p>
+            )}
 
             <button
               onClick={handleContinue}
