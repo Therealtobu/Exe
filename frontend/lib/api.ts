@@ -1,4 +1,5 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const BASE = process.env.NEXT_PUBLIC_API_URL
+  || (typeof window !== "undefined" ? `${window.location.origin}/api` : "http://localhost:8000/api");
 
 function token() {
   if (typeof window === "undefined") return null;
@@ -7,14 +8,19 @@ function token() {
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const tk = token();
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(tk ? { Authorization: `Bearer ${tk}` } : {}),
-      ...(init.headers || {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(tk ? { Authorization: `Bearer ${tk}` } : {}),
+        ...(init.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach API (${BASE}). Check NEXT_PUBLIC_API_URL or backend /api route.`);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Request failed" }));
     throw new Error(err.detail || `HTTP ${res.status}`);
