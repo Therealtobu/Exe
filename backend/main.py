@@ -15,6 +15,7 @@ from routes.challenge  import router as challenge_router
 from routes.management import router as mgmt_router
 from routes.keys       import router as keys_router
 from routes.turnstile  import router as turnstile_router
+from routes.admin      import router as admin_router
 import config
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -46,6 +47,7 @@ app.include_router(challenge_router)
 app.include_router(mgmt_router,      prefix="/api")
 app.include_router(keys_router,      prefix="/api")
 app.include_router(turnstile_router, prefix="/api")
+app.include_router(admin_router,     prefix="/api")
 
 @app.on_event("startup")
 def startup():
