@@ -698,15 +698,17 @@ export default function ProjectPage() {
 
   if (loading) return (
     <Sidebar>
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="flex-1 p-6 space-y-4 max-w-3xl mx-auto w-full">
+      <div className="relative h-full overflow-hidden">
+        <div className="p-6 space-y-4 max-w-3xl mx-auto" style={{ paddingBottom: 96 }}>
           {[1,2,3].map(i=><div key={i} className="skeleton h-20 rounded-2xl"/>)}
         </div>
-        <div className="flex-shrink-0 flex justify-center pb-5 px-5 pt-2"
-          style={{background:"linear-gradient(to top,rgba(8,8,15,0.95) 0%,transparent 100%)"}}>
-          <div style={{width:"100%",maxWidth:360}}>
-            <RightSidebarNav tabs={PROJECT_TABS} active="files" onChange={()=>{}}/>
-          </div>
+        <div style={{
+          position:"fixed",
+          bottom:"max(env(safe-area-inset-bottom,0px),16px)",
+          left:16, zIndex:50,
+          width:"min(260px,calc(100vw - 32px))",
+        }}>
+          <RightSidebarNav tabs={PROJECT_TABS} active="files" onChange={()=>{}}/>
         </div>
       </div>
     </Sidebar>
@@ -714,8 +716,8 @@ export default function ProjectPage() {
 
   return (
     <Sidebar>
-      <div className="flex flex-col h-full overflow-hidden">
-        {/* Header — full width */}
+      <div className="relative h-full overflow-hidden">
+        {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0"
           style={{borderBottom:"1px solid rgba(255,255,255,0.06)",background:"rgba(255,255,255,0.02)"}}>
           <Link href="/dashboard" className="text-white/30 hover:text-white transition-colors p-1 -ml-1">
@@ -731,9 +733,9 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        {/* Tab content — full width */}
-        <div className="flex-1 overflow-hidden" key={tab}>
-          <div className="animate-tab-in h-full">
+        {/* Tab content — fills remaining height, content scrolls under the floating bar */}
+        <div className="h-full overflow-hidden" key={tab}>
+          <div className="animate-tab-in h-full" style={{ paddingBottom: 88 }}>
             {tab==="files"      && <FilesTab      project={project} scripts={scripts} onReload={loadAll} onToggle={handleToggle} onDelete={handleDelete} onLoader={handleLoader} onMetrics={setMetricsId} metricsId={metricsId} onCloseMetrics={()=>setMetricsId(null)}/>}
             {tab==="livefeed"   && <LiveFeedTab   project={project} scripts={scripts}/>}
             {tab==="management" && <ManagementTab project={project}/>}
@@ -741,12 +743,16 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        {/* Horizontal liquid nav — centered at bottom */}
-        <div className="flex-shrink-0 flex justify-center pb-5 px-5 pt-2"
-          style={{background:"linear-gradient(to top,rgba(8,8,15,0.95) 0%,transparent 100%)"}}>
-          <div style={{width:"100%",maxWidth:360}}>
-            <RightSidebarNav tabs={PROJECT_TABS} active={tab} onChange={setTab as any}/>
-          </div>
+        {/* Liquid nav — centered at bottom */}
+        <div style={{
+          position:"fixed",
+          bottom:"max(env(safe-area-inset-bottom,0px),16px)",
+          left:"50%",
+          transform:"translateX(-50%)",
+          zIndex:50,
+          width:"min(360px,calc(100vw - 32px))",
+        }}>
+          <RightSidebarNav tabs={PROJECT_TABS} active={tab} onChange={setTab as any}/>
         </div>
       </div>
 
