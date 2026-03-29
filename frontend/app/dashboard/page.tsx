@@ -244,23 +244,26 @@ export default function DashboardPage() {
 
   return (
     <Sidebar>
-      {/* Full-screen column */}
-      <div className="flex flex-col h-full overflow-hidden">
+      {/* Full-screen — content fills everything, bar floats on top */}
+      <div className="relative h-full overflow-hidden">
 
-        {/* Content — full width, tabs switch here */}
-        <div className="flex-1 overflow-hidden relative" key={tab}>
-          <div className="animate-tab-in h-full flex flex-col">
+        {/* Content scrolls under the floating bar */}
+        <div className="h-full overflow-hidden" key={tab}>
+          <div className="animate-tab-in h-full flex flex-col" style={{ paddingBottom: 88 }}>
             {tab === "project" && <ProjectsPanel />}
             {tab === "account" && <AccountPanel />}
           </div>
         </div>
 
-        {/* Horizontal liquid nav — centered at bottom */}
-        <div className="flex-shrink-0 flex justify-center pb-5 px-5 pt-2"
-          style={{ background:"linear-gradient(to top,rgba(8,8,15,0.95) 0%,transparent 100%)" }}>
-          <div style={{ width:"100%", maxWidth:280 }}>
-            <RightSidebarNav tabs={DASH_TABS} active={tab} onChange={setTab as any} />
-          </div>
+        {/* Floating liquid nav — compact, bottom-left */}
+        <div style={{
+          position: "fixed",
+          bottom: "max(env(safe-area-inset-bottom, 0px), 16px)",
+          left: 16,
+          width: "min(220px, calc(100vw - 32px))",
+          zIndex: 50,
+        }}>
+          <RightSidebarNav tabs={DASH_TABS} active={tab} onChange={setTab as any} />
         </div>
 
       </div>
